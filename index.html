@@ -223,10 +223,9 @@
 function safeGet(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
 function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
-// Paste your own /exec URL here once you deploy lorry_checklist_apps_script.gs,
-// so every device auto-connects without pasting it manually. Leave blank to
-// require manual "Save URL" in the Google Sheet tab instead.
-const DEFAULT_API_URL = '';
+// Hardcoded so every device auto-connects to the Google Sheet without
+// anyone needing to paste the URL manually via "Save URL".
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby_XVc78BffklS91ej3GjwgN4XhgLnrc-UJ4oH-MwiznMK7yNj_iaw5s2d_QVYt1ros/exec';
 
 let apiUrl = safeGet('lorry_api_url') || DEFAULT_API_URL;
 const el = id => document.getElementById(id);
