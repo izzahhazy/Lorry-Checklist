@@ -5,536 +5,557 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lorry Checklist — HEXA FOOD SDN BHD (HEXA 3)</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Dancing+Script:wght@600;700&display=swap');
-  :root{
-    --ink:#1F2A24; --ink-soft:#4A554E; --paper:#F6F7F3; --card:#FFFFFF;
-    --line:#D7DCD2; --line-strong:#B7C0AF; --green:#2E7D5B; --green-100:#E1F0E6;
-    --green-800:#1B4A36; --amber:#B9791A; --amber-100:#FBEFDA; --amber-800:#6B4408;
-    --red:#B23A2E; --red-100:#FBEAE7;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,-apple-system,sans-serif;padding:14px;}
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  .wrap{max-width:720px;margin:0 auto;}
-  .apibar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff7e6;border:1px solid #e8c778;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#6B4408;}
-  .apibar.ok{background:var(--green-100);border-color:var(--green);color:var(--green-800);}
-  .apibar a{color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;}
-  .masthead{display:grid;grid-template-columns:1fr 140px;border:1.5px solid var(--ink);background:var(--card);border-radius:6px;overflow:hidden;margin-bottom:14px;}
-  .masthead-main{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:12px 14px;border-right:1.5px solid var(--ink);text-align:center;}
-  .masthead-main .co{font-weight:700;font-size:14px;}
-  .masthead-main .title{font-weight:600;font-size:13px;color:var(--green-800);}
-  .masthead-meta{display:flex;flex-direction:column;font-size:10.5px;}
-  .masthead-meta div{display:flex;justify-content:space-between;gap:6px;padding:5px 8px;border-bottom:1px solid var(--line);}
-  .masthead-meta div:last-child{border-bottom:none;}
-  .masthead-meta span:first-child{color:var(--ink-soft);}
-  .masthead-meta span:last-child{font-family:'IBM Plex Mono',monospace;font-weight:600;}
-  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
-  .tab{flex:1;min-width:100px;text-align:center;padding:10px 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);font-weight:600;font-size:13px;color:var(--ink-soft);cursor:pointer;user-select:none;}
-  .tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
-  .panel{display:none;}
-  .panel.active{display:block;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
-  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
-  .field label{font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;}
-  .field input, .field textarea{font-family:inherit;font-size:16px;padding:11px 10px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;color:var(--ink);resize:vertical;}
-  .field textarea{min-height:70px;line-height:1.5;}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .section-title{font-weight:700;font-size:14px;margin:16px 0 8px;color:var(--green-800);}
-  .section-title:first-child{margin-top:0;}
-  .item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
-  .item-row:last-child{border-bottom:none;}
-  .item-name{font-size:13.5px;font-weight:500;flex:1;line-height:1.35;}
-  .seg{display:flex;gap:4px;flex-shrink:0;}
-  .seg button{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--line-strong);background:#fff;font-weight:700;font-size:15px;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;}
-  .seg button.on-good{background:var(--green);border-color:var(--green);color:#fff;}
-  .seg button.on-notfunc{background:var(--amber);border-color:var(--amber);color:#fff;}
-  .seg button.on-broken{background:var(--red);border-color:var(--red);color:#fff;}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
-  .legend b{font-family:'IBM Plex Mono',monospace;}
-  .btn{font-family:inherit;font-weight:600;font-size:14px;padding:12px 16px;border-radius:7px;border:1px solid var(--line-strong);background:#fff;color:var(--ink);cursor:pointer;}
-  .btn:active{transform:scale(.98);}
-  .btn-primary{background:var(--green);border-color:var(--green);color:#fff;width:100%;}
-  .btn-danger{color:var(--red);border-color:var(--red-100);}
-  .status-pill{font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:var(--green-100);color:var(--green-800);display:inline-block;}
-  .status-pill.unsaved{background:var(--amber-100);color:var(--amber-800);}
-  .filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
-  .filter-row .field{margin-bottom:0;flex:1;min-width:130px;}
-  .recrow{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
-  .recrow .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .recrow .d{font-family:'IBM Plex Mono',monospace;font-weight:700;}
-  .recrow .lorry{color:var(--ink-soft);font-size:13px;flex:1;}
-  .recrow .btns{display:flex;gap:6px;}
-  .issue-badge{font-size:11px;font-weight:700;color:var(--red);background:var(--red-100);border:1px solid var(--red);border-radius:5px;padding:2px 7px;}
-  .ok-badge{font-size:11px;font-weight:700;color:var(--green);background:var(--green-100);border:1px solid var(--green);border-radius:5px;padding:2px 7px;}
-  .empty-note{color:var(--ink-soft);font-size:13px;padding:24px;text-align:center;}
-  .settings-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .settings-row input{flex:1;min-width:220px;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;}
-  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
-  .hint code{background:var(--paper);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
-
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,25,22,0.55);z-index:1000;align-items:center;justify-content:center;padding:16px;}
-  .modal-overlay.show{display:flex;}
-  .modal-box{background:#fff;border-radius:12px;width:min(680px,94vw);max-height:92vh;overflow-y:auto;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
-  .modal-title{font-weight:700;font-size:16px;margin-bottom:10px;}
-
-  #printRoot{display:none;}
-  @page{ size: A4 portrait; margin: 10mm; }
-  @media print{
-    body *{visibility:hidden;}
-    #printRoot, #printRoot *{visibility:visible;}
-    #printRoot{display:block;position:absolute;left:0;top:0;width:100%;}
-  }
-  .ptable{width:100%;border-collapse:collapse;font-size:11.5px;}
-  .ptable td, .ptable th{border:1px solid #333;padding:6px 8px;vertical-align:top;text-align:left;}
-  .ptable td.lbl{width:220px;font-weight:600;background:#f7f7f5;}
-  .ptable td.sym{text-align:center;font-weight:700;width:40px;}
-
-  .ppage-head{display:grid;grid-template-columns:1fr 150px;border:1.2px solid #222;margin-bottom:10px;border-radius:3px;overflow:hidden;}
-  .ppage-head .l{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1.2px solid #222;text-align:center;}
-  .ppage-head .l b{font-size:13px;}
-  .ppage-head .l span{font-size:12px;font-weight:600;color:#1B4A36;}
-  .ppage-head .r{padding:6px 10px;display:flex;flex-direction:column;gap:2px;justify-content:center;}
-  .ppage-head .r div{display:flex;justify-content:flex-start;gap:5px;font-size:10px;}
-  .ppage-head .r div span:first-child{min-width:62px;}
-  .pmeta{display:flex;gap:18px;font-size:11px;margin-bottom:8px;}
-  .pmeta b{font-family:'IBM Plex Mono',monospace;}
-  .psection{font-weight:700;font-size:11.5px;background:#e9ece6;padding:5px 8px;border:1px solid #333;border-top:none;}
-  .ptable td.pname{width:auto;}
-  .pfoot{margin-top:10px;font-size:11px;}
-  .pfoot .row{display:flex;gap:24px;margin-top:4px;}
-  .pgrid{width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed;}
-  .pgrid th, .pgrid td{border:1px solid #333;padding:3px 3px;text-align:center;vertical-align:middle;word-break:break-word;}
-  .pgrid td.itemname, .pgrid th.itemname{text-align:left;width:150px;font-size:9px;padding-left:5px;}
-  .pgrid th.datecol, .pgrid td.datecol{width:42px;font-size:9px;}
-  .pgrid tr.cleanheader td{background:#111;color:#fff;font-weight:700;text-align:left;padding:4px 5px;}
-  .pgrid .lorryno{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;height:70px;font-weight:600;}
-  .pmonth-title{font-weight:700;font-size:13px;margin:10px 0 8px;}
-  .plegend2{font-size:9.5px;color:#333;margin-top:6px;line-height:1.5;}
-  .psig-name{font-family:'Dancing Script',cursive;font-weight:600;font-size:16px;color:#1B4A36;}
-  .pgrid .psig-name{font-size:11px;}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Dancing+Script:wght@600;700&display=swap');
+:root{
+--ink:#1F2A24; --ink-soft:#4A554E; --paper:#F6F7F3; --card:#FFFFFF;
+--line:#D7DCD2; --line-strong:#B7C0AF; --green:#2E7D5B; --green-100:#E1F0E6;
+--green-800:#1B4A36; --amber:#B9791A; --amber-100:#FBEFDA; --amber-800:#6B4408;
+--red:#B23A2E; --red-100:#FBEAE7;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,-apple-system,sans-serif;padding:14px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.wrap{max-width:720px;margin:0 auto;}
+.apibar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff7e6;border:1px solid #e8c778;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#6B4408;}
+.apibar.ok{background:var(--green-100);border-color:var(--green);color:var(--green-800);}
+.apibar a{color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;}
+.masthead{display:grid;grid-template-columns:1fr 140px;border:1.5px solid var(--ink);background:var(--card);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.masthead-main{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:12px 14px;border-right:1.5px solid var(--ink);text-align:center;}
+.masthead-main .co{font-weight:700;font-size:14px;}
+.masthead-main .title{font-weight:600;font-size:13px;color:var(--green-800);}
+.masthead-meta{display:flex;flex-direction:column;font-size:10.5px;}
+.masthead-meta div{display:flex;justify-content:space-between;gap:6px;padding:5px 8px;border-bottom:1px solid var(--line);}
+.masthead-meta div:last-child{border-bottom:none;}
+.masthead-meta span:first-child{color:var(--ink-soft);}
+.masthead-meta span:last-child{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{flex:1;min-width:100px;text-align:center;padding:10px 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);font-weight:600;font-size:13px;color:var(--ink-soft);cursor:pointer;user-select:none;}
+.tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.panel{display:none;}
+.panel.active{display:block;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.field label{font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;}
+.field input, .field textarea{font-family:inherit;font-size:16px;padding:11px 10px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;color:var(--ink);resize:vertical;}
+.field textarea{min-height:70px;line-height:1.5;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.section-title{font-weight:700;font-size:14px;margin:16px 0 8px;color:var(--green-800);}
+.section-title:first-child{margin-top:0;}
+.item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.item-row:last-child{border-bottom:none;}
+.item-name{font-size:13.5px;font-weight:500;flex:1;line-height:1.35;}
+.seg{display:flex;gap:4px;flex-shrink:0;}
+.seg button{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--line-strong);background:#fff;font-weight:700;font-size:15px;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+.seg button.on-good{background:var(--green);border-color:var(--green);color:#fff;}
+.seg button.on-notfunc{background:var(--amber);border-color:var(--amber);color:#fff;}
+.seg button.on-broken{background:var(--red);border-color:var(--red);color:#fff;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
+.legend b{font-family:'IBM Plex Mono',monospace;}
+.btn{font-family:inherit;font-weight:600;font-size:14px;padding:12px 16px;border-radius:7px;border:1px solid var(--line-strong);background:#fff;color:var(--ink);cursor:pointer;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--green);border-color:var(--green);color:#fff;width:100%;}
+.btn-danger{color:var(--red);border-color:var(--red-100);}
+.status-pill{font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:var(--green-100);color:var(--green-800);display:inline-block;}
+.status-pill.unsaved{background:var(--amber-100);color:var(--amber-800);}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+.filter-row .field{margin-bottom:0;flex:1;min-width:130px;}
+.recrow{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+.recrow .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.recrow .d{font-family:'IBM Plex Mono',monospace;font-weight:700;}
+.recrow .lorry{color:var(--ink-soft);font-size:13px;flex:1;}
+.recrow .btns{display:flex;gap:6px;}
+.issue-badge{font-size:11px;font-weight:700;color:var(--red);background:var(--red-100);border:1px solid var(--red);border-radius:5px;padding:2px 7px;}
+.ok-badge{font-size:11px;font-weight:700;color:var(--green);background:var(--green-100);border:1px solid var(--green);border-radius:5px;padding:2px 7px;}
+.empty-note{color:var(--ink-soft);font-size:13px;padding:24px;text-align:center;}
+.settings-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.settings-row input{flex:1;min-width:220px;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;}
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
+.hint code{background:var(--paper);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,25,22,0.55);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:#fff;border-radius:12px;width:min(680px,94vw);max-height:92vh;overflow-y:auto;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
+.modal-title{font-weight:700;font-size:16px;margin-bottom:10px;}
+.edit-banner{display:none;align-items:center;justify-content:space-between;gap:10px;background:var(--amber-100);border:1px solid var(--amber);color:var(--amber-800);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:600;}
+.edit-banner.show{display:flex;}
+.edit-banner button{background:none;border:1px solid var(--amber-800);color:var(--amber-800);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+#printRoot{display:none;}
+@page{ size: A4 portrait; margin: 10mm; }
+@media print{
+body *{visibility:hidden;}
+#printRoot, #printRoot *{visibility:visible;}
+#printRoot{display:block;position:absolute;left:0;top:0;width:100%;}
+}
+.ptable{width:100%;border-collapse:collapse;font-size:11.5px;}
+.ptable td, .ptable th{border:1px solid #333;padding:6px 8px;vertical-align:top;text-align:left;}
+.ptable td.lbl{width:220px;font-weight:600;background:#f7f7f5;}
+.ptable td.sym{text-align:center;font-weight:700;width:40px;}
+.ppage-head{display:grid;grid-template-columns:1fr 150px;border:1.2px solid #222;margin-bottom:10px;border-radius:3px;overflow:hidden;}
+.ppage-head .l{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1.2px solid #222;text-align:center;}
+.ppage-head .l b{font-size:13px;}
+.ppage-head .l span{font-size:12px;font-weight:600;color:#1B4A36;}
+.ppage-head .r{padding:6px 10px;display:flex;flex-direction:column;gap:2px;justify-content:center;}
+.ppage-head .r div{display:flex;justify-content:flex-start;gap:5px;font-size:10px;}
+.ppage-head .r div span:first-child{min-width:62px;}
+.pmeta{display:flex;gap:18px;font-size:11px;margin-bottom:8px;}
+.pmeta b{font-family:'IBM Plex Mono',monospace;}
+.psection{font-weight:700;font-size:11.5px;background:#e9ece6;padding:5px 8px;border:1px solid #333;border-top:none;}
+.ptable td.pname{width:auto;}
+.pfoot{margin-top:10px;font-size:11px;}
+.pfoot .row{display:flex;gap:24px;margin-top:4px;}
+.pgrid{width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed;}
+.pgrid th, .pgrid td{border:1px solid #333;padding:3px 3px;text-align:center;vertical-align:middle;word-break:break-word;}
+.pgrid td.itemname, .pgrid th.itemname{text-align:left;width:150px;font-size:9px;padding-left:5px;}
+.pgrid th.datecol, .pgrid td.datecol{width:42px;font-size:9px;}
+.pgrid tr.cleanheader td{background:#111;color:#fff;font-weight:700;text-align:left;padding:4px 5px;}
+.pgrid .lorryno{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;height:70px;font-weight:600;}
+.pmonth-title{font-weight:700;font-size:13px;margin:10px 0 8px;}
+.plegend2{font-size:9.5px;color:#333;margin-top:6px;line-height:1.5;}
+.psig-name{font-family:'Dancing Script',cursive;font-weight:600;font-size:16px;color:#1B4A36;}
+.pgrid .psig-name{font-size:11px;}
 </style>
 </head>
 <body>
-
 <div class="wrap" id="app">
-
-  <div class="apibar" id="apiBar">
-    Google Sheet not connected yet — data will only stay on this device/session.
-    <a id="apiBarLink">Go to setup</a>
-  </div>
-
-  <div class="masthead">
-    <div class="masthead-main">
-      <div class="co">HEXA FOOD SDN BHD (HEXA 3)</div>
-      <div class="title">Lorry Checklist Record</div>
-    </div>
-    <div class="masthead-meta">
-      <div><span>Doc No.</span><span>HX3-F52</span></div>
-      <div><span>Issue No.</span><span>1</span></div>
-      <div><span>Issue Date</span><span>1/6/2025</span></div>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" data-panel="new">New Checklist</div>
-    <div class="tab" data-panel="records">Records</div>
-    <div class="tab" data-panel="settings">Google Sheet</div>
-  </div>
-
-  <div class="panel active" id="panel-new">
-    <div class="card">
-      <div class="row2">
-        <div class="field"><label>Lorry No</label><input type="text" id="fLorryNo" placeholder="e.g. WXX 1234"></div>
-        <div class="field"><label>Date</label><input type="date" id="fDate"></div>
-      </div>
-
-      <div class="legend">
-        <span><b>/</b> Good condition</span>
-        <span><b>X</b> Not functioning</span>
-        <span><b>–</b> Broken</span>
-      </div>
-
-      <div class="section-title">Checking Items</div>
-      <div id="checkItemsWrap"></div>
-
-      <div class="section-title">Lorry Cleanliness</div>
-      <div id="cleanItemsWrap"></div>
-
-      <div class="section-title">Remarks</div>
-      <div class="field"><textarea id="fRemark" placeholder="Any additional remarks"></textarea></div>
-
-      <div class="section-title">Inspected by</div>
-      <div class="row2">
-        <div class="field"><label>Name</label><input type="text" id="iName"></div>
-        <div class="field"><label>Position</label><input type="text" id="iPosition"></div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
-        <button class="btn btn-primary" id="addBtn">Submit Checklist</button>
-      </div>
-      <div style="margin-top:10px;"><span class="status-pill" id="statusPill">Ready</span></div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-records">
-    <div class="filter-row">
-      <div class="field"><label>Month</label><input type="month" id="monthFilter"></div>
-      <div class="field"><label>Lorry No (optional)</label><input type="text" id="lorryFilter" placeholder="e.g. WXX 1234"></div>
-    </div>
-    <button class="btn" id="loadLogBtn" style="width:100%;margin-bottom:8px;">Show records</button>
-    <button class="btn btn-primary" id="printGridBtn" style="width:100%;margin-bottom:14px;">Print Monthly Sheet</button>
-    <div id="logWrap"><div class="empty-note">Tap "Show records" to load the list.</div></div>
-  </div>
-
-  <div class="panel" id="panel-settings">
-    <div class="card">
-      <div style="font-weight:700;margin-bottom:10px;">Google Sheet connection</div>
-      <div class="settings-row">
-        <input type="text" id="sheetUrlInput" placeholder="Paste your Google Apps Script Web App URL here">
-        <button class="btn btn-primary" id="saveUrlBtn">Save URL</button>
-      </div>
-      <div class="hint">
-        Every checklist you submit is written straight to your Google Sheet (tab "Lorry Checklist").<br><br>
-        <b>One-time setup:</b><br>
-        1. Open a blank Google Sheet → <b>Extensions → Apps Script</b><br>
-        2. Copy all the code from <code>lorry_checklist_apps_script.gs</code>, paste it in, then <b>Deploy → New deployment → Web app</b>, "Who has access" = Anyone<br>
-        3. Copy the deployment URL (must end in <code>/exec</code>), paste it above, tap Save URL.
-      </div>
-    </div>
-  </div>
-
+<div class="apibar" id="apiBar">
+Google Sheet not connected yet — data will only stay on this device/session.
+<a id="apiBarLink">Go to setup</a>
 </div>
-
+<div class="masthead">
+<div class="masthead-main">
+<div class="co">HEXA FOOD SDN BHD (HEXA 3)</div>
+<div class="title">Lorry Checklist Record</div>
+</div>
+<div class="masthead-meta">
+<div><span>Doc No.</span><span>HX3-F52</span></div>
+<div><span>Issue No.</span><span>1</span></div>
+<div><span>Issue Date</span><span>1/6/2025</span></div>
+</div>
+</div>
+<div class="tabs">
+<div class="tab active" data-panel="new">New Checklist</div>
+<div class="tab" data-panel="records">Records</div>
+<div class="tab" data-panel="settings">Google Sheet</div>
+</div>
+<div class="panel active" id="panel-new">
+<div class="card">
+<div class="edit-banner" id="editBanner">
+<span id="editBannerText">Editing record</span>
+<button type="button" id="cancelEditBtn">Cancel edit</button>
+</div>
+<div class="row2">
+<div class="field"><label>Lorry No</label><input type="text" id="fLorryNo" placeholder="e.g. WXX 1234"></div>
+<div class="field"><label>Date</label><input type="date" id="fDate"></div>
+</div>
+<div class="legend">
+<span><b>/</b> Good condition</span>
+<span><b>X</b> Not functioning</span>
+<span><b>–</b> Broken</span>
+</div>
+<div class="section-title">Checking Items</div>
+<div id="checkItemsWrap"></div>
+<div class="section-title">Lorry Cleanliness</div>
+<div id="cleanItemsWrap"></div>
+<div class="section-title">Remarks</div>
+<div class="field"><textarea id="fRemark" placeholder="Any additional remarks"></textarea></div>
+<div class="section-title">Inspected by</div>
+<div class="row2">
+<div class="field"><label>Name</label><input type="text" id="iName"></div>
+<div class="field"><label>Position</label><input type="text" id="iPosition"></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+<button class="btn btn-primary" id="addBtn">Submit Checklist</button>
+</div>
+<div style="margin-top:10px;"><span class="status-pill" id="statusPill">Ready</span></div>
+</div>
+</div>
+<div class="panel" id="panel-records">
+<div class="filter-row">
+<div class="field"><label>Month</label><input type="month" id="monthFilter"></div>
+<div class="field"><label>Lorry No (optional)</label><input type="text" id="lorryFilter" placeholder="e.g. WXX 1234"></div>
+</div>
+<button class="btn" id="loadLogBtn" style="width:100%;margin-bottom:8px;">Show records</button>
+<button class="btn btn-primary" id="printGridBtn" style="width:100%;margin-bottom:14px;">Print Monthly Sheet</button>
+<div id="logWrap"><div class="empty-note">Tap "Show records" to load the list.</div></div>
+</div>
+<div class="panel" id="panel-settings">
+<div class="card">
+<div style="font-weight:700;margin-bottom:10px;">Google Sheet connection</div>
+<div class="settings-row">
+<input type="text" id="sheetUrlInput" placeholder="Paste your Google Apps Script Web App URL here">
+<button class="btn btn-primary" id="saveUrlBtn">Save URL</button>
+</div>
+<div class="hint">
+Every checklist you submit is written straight to your Google Sheet (tab "Lorry Checklist").<br><br>
+<b>One-time setup:</b><br>
+1. Open a blank Google Sheet → <b>Extensions → Apps Script</b><br>
+2. Copy all the code from <code>lorry_checklist_apps_script.gs</code>, paste it in, then <b>Deploy → New deployment → Web app</b>, "Who has access" = Anyone<br>
+3. Copy the deployment URL (must end in <code>/exec</code>), paste it above, tap Save URL.
+</div>
+</div>
+</div>
+</div>
 <div id="printRoot"></div>
-
 <div class="modal-overlay" id="viewModal">
-  <div class="modal-box">
-    <div class="modal-title" id="vmTitle">Checklist detail</div>
-    <div id="vmBody"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
-      <button class="btn" id="vmCloseBtn">Close</button>
-      <button class="btn btn-primary" id="vmPrintBtn">Print</button>
-    </div>
-  </div>
+<div class="modal-box">
+<div class="modal-title" id="vmTitle">Checklist detail</div>
+<div id="vmBody"></div>
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+<button class="btn" id="vmCloseBtn">Close</button>
+<button class="btn btn-primary" id="vmPrintBtn">Print</button>
 </div>
-
+</div>
+</div>
 <script>
 function safeGet(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
 function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-
 // Hardcoded so every device auto-connects to the Google Sheet without
 // anyone needing to paste the URL manually via "Save URL".
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby_XVc78BffklS91ej3GjwgN4XhgLnrc-UJ4oH-MwiznMK7yNj_iaw5s2d_QVYt1ros/exec';
-
 let apiUrl = safeGet('lorry_api_url') || DEFAULT_API_URL;
 const el = id => document.getElementById(id);
 const memStore = [];
-
 const CHECK_ITEMS = [
-  'Brakes, Clutch and Accelerator','Side Mirror','Windscreen, Glass (Wiper & Rubber)',
-  'Steering and Horn','Lights and Indicators','Door Lock','Number Plate (Front & Back)',
-  'Tyre and Rim','Fuel / Oil Leaks','Mud Flaps','Marker / Reflector',
-  'Engine Oil Checking','Radiator Tank Water Level','Battery Fluid Level and Condition'
+'Brakes, Clutch and Accelerator','Side Mirror','Windscreen, Glass (Wiper & Rubber)',
+'Steering and Horn','Lights and Indicators','Door Lock','Number Plate (Front & Back)',
+'Tyre and Rim','Fuel / Oil Leaks','Mud Flaps','Marker / Reflector',
+'Engine Oil Checking','Radiator Tank Water Level','Battery Fluid Level and Condition'
 ];
 const CLEAN_ITEMS = ['Cabin Wall','Cabin Floor','Window','Dashboard','Driver Seat'];
 const SYMS = {good:'/', notfunc:'X', broken:'\u2013'};
-
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 async function ensureSignatureFontReady_(){
-  try{
-    await document.fonts.load("600 16px 'Dancing Script'");
-    await document.fonts.ready;
-  }catch(e){ /* if unsupported, just proceed */ }
+try{
+await document.fonts.load("600 16px 'Dancing Script'");
+await document.fonts.ready;
+}catch(e){ /* if unsupported, just proceed */ }
 }
-
-function buildItemRows(container, names, statusObj){
-  container.innerHTML = '';
-  names.forEach(name=>{
-    const row = document.createElement('div');
-    row.className = 'item-row';
-    row.innerHTML = `
-      <div class="item-name">${escapeHtml(name)}</div>
-      <div class="seg">
-        <button type="button" data-val="good">/</button>
-        <button type="button" data-val="notfunc">X</button>
-        <button type="button" data-val="broken">&ndash;</button>
-      </div>`;
-    row.querySelectorAll('button').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        statusObj[name] = statusObj[name] === btn.dataset.val ? '' : btn.dataset.val;
-        row.querySelectorAll('button').forEach(b=> b.className = (statusObj[name]===b.dataset.val ? 'on-'+b.dataset.val : ''));
-      });
-    });
-    container.appendChild(row);
-  });
+function buildItemRows(container, names, statusObj, initial){
+container.innerHTML = '';
+names.forEach(name=>{
+statusObj[name] = (initial && initial[name]) ? initial[name] : (statusObj[name] || '');
+const row = document.createElement('div');
+row.className = 'item-row';
+row.innerHTML = `
+<div class="item-name">${escapeHtml(name)}</div>
+<div class="seg">
+<button type="button" data-val="good">/</button>
+<button type="button" data-val="notfunc">X</button>
+<button type="button" data-val="broken">&ndash;</button>
+</div>`;
+row.querySelectorAll('button').forEach(btn=>{
+if(statusObj[name] === btn.dataset.val){ btn.className = 'on-'+btn.dataset.val; }
+btn.addEventListener('click', ()=>{
+statusObj[name] = statusObj[name] === btn.dataset.val ? '' : btn.dataset.val;
+row.querySelectorAll('button').forEach(b=> b.className = (statusObj[name]===b.dataset.val ? 'on-'+b.dataset.val : ''));
+});
+});
+container.appendChild(row);
+});
 }
-
 let checkState = {}, cleanState = {};
+// When set, the form is editing an existing record instead of creating a new one.
+// Shape: {row: <sheet row number>, date: <original date string>}
+let editingRecord = null;
 function resetChecklist(){
-  checkState = {}; cleanState = {};
-  buildItemRows(el('checkItemsWrap'), CHECK_ITEMS, checkState);
-  buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState);
+checkState = {}; cleanState = {};
+buildItemRows(el('checkItemsWrap'), CHECK_ITEMS, checkState);
+buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState);
 }
 resetChecklist();
 el('fDate').value = todayStr();
-
 function refreshApiBar(){
-  const bar = el('apiBar');
-  if(apiUrl){
-    bar.classList.add('ok');
-    bar.innerHTML = 'Connected to Google Sheet. Checklists are saved online.';
-  } else {
-    bar.classList.remove('ok');
-    bar.innerHTML = 'Google Sheet not connected yet — data will only stay on this device/session. <a id="apiBarLink">Go to setup</a>';
-    const link = el('apiBarLink');
-    if(link) link.addEventListener('click', ()=> document.querySelector('[data-panel="settings"]').click());
-  }
+const bar = el('apiBar');
+if(apiUrl){
+bar.classList.add('ok');
+bar.innerHTML = 'Connected to Google Sheet. Checklists are saved online.';
+} else {
+bar.classList.remove('ok');
+bar.innerHTML = 'Google Sheet not connected yet — data will only stay on this device/session. <a id="apiBarLink">Go to setup</a>';
+const link = el('apiBarLink');
+if(link) link.addEventListener('click', ()=> document.querySelector('[data-panel="settings"]').click());
+}
 }
 function setStatus(text, kind){
-  const p = el('statusPill');
-  p.textContent = text;
-  p.className = 'status-pill' + (kind==='unsaved' ? ' unsaved' : '');
+const p = el('statusPill');
+p.textContent = text;
+p.className = 'status-pill' + (kind==='unsaved' ? ' unsaved' : '');
 }
-
+function setEditMode(record){
+if(record){
+editingRecord = {row: record.row, date: record.date};
+el('editBanner').classList.add('show');
+el('editBannerText').textContent = `Editing ${record.date} · ${record.lorryNo}`;
+el('addBtn').textContent = 'Update Checklist';
+} else {
+editingRecord = null;
+el('editBanner').classList.remove('show');
+el('addBtn').textContent = 'Submit Checklist';
+}
+}
+function loadRecordIntoForm(r){
+el('fLorryNo').value = r.lorryNo || '';
+el('fDate').value = r.date || todayStr();
+el('fRemark').value = r.remark || '';
+el('iName').value = r.inspectedName || '';
+el('iPosition').value = r.inspectedPosition || '';
+checkState = {}; cleanState = {};
+buildItemRows(el('checkItemsWrap'), CHECK_ITEMS, checkState, r.items || {});
+buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState, r.cleanliness || {});
+setEditMode(r);
+document.querySelector('[data-panel="new"]').click();
+setStatus('Editing — make changes then tap Update Checklist');
+}
+el('cancelEditBtn').addEventListener('click', ()=>{
+setEditMode(null);
+el('fLorryNo').value=''; el('fRemark').value=''; el('iName').value=''; el('iPosition').value='';
+el('fDate').value = todayStr();
+resetChecklist();
+setStatus('Ready');
+});
 async function apiAdd(record){
-  memStore.push(record);
-  if(!apiUrl) return {ok:false, reason:'no-url'};
-  try{
-    const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({action:'add', record})});
-    const text = await res.text();
-    let j; try{ j = JSON.parse(text); }catch(e){ return {ok:false, reason:'bad-response', raw:text}; }
-    if(j.ok===false) return {ok:false, reason:'script-error', raw:j.error};
-    return {ok:true};
-  }catch(e){ return {ok:false, reason:'fetch-error', raw:String(e)}; }
+memStore.push(record);
+if(!apiUrl) return {ok:false, reason:'no-url'};
+try{
+const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'},
+body: JSON.stringify({action:'add', record})});
+const text = await res.text();
+let j; try{ j = JSON.parse(text); }catch(e){ return {ok:false, reason:'bad-response', raw:text}; }
+if(j.ok===false) return {ok:false, reason:'script-error', raw:j.error};
+return {ok:true};
+}catch(e){ return {ok:false, reason:'fetch-error', raw:String(e)}; }
+}
+async function apiUpdate(rowNum, origDate, record){
+if(!apiUrl) return {ok:false, reason:'no-url'};
+try{
+const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'},
+body: JSON.stringify({action:'update', row: rowNum, date: origDate, record})});
+const text = await res.text();
+let j; try{ j = JSON.parse(text); }catch(e){ return {ok:false, reason:'bad-response', raw:text}; }
+if(j.ok===false) return {ok:false, reason:'script-error', raw:j.error};
+return {ok:true};
+}catch(e){ return {ok:false, reason:'fetch-error', raw:String(e)}; }
 }
 async function apiList(month, lorry){
-  if(apiUrl){
-    try{
-      let url = apiUrl + '?action=list';
-      if(month) url += '&month=' + encodeURIComponent(month);
-      if(lorry) url += '&lorry=' + encodeURIComponent(lorry);
-      const res = await fetch(url);
-      const text = await res.text();
-      let j; try{ j = JSON.parse(text); }catch(e){ j = null; }
-      if(j && j.ok) return j.rows || [];
-    }catch(e){ /* fall through to local */ }
-  }
-  return memStore.filter(r=> (!month || (r.date||'').startsWith(month)) && (!lorry || (r.lorryNo||'').toLowerCase().includes(lorry.toLowerCase())));
+if(apiUrl){
+try{
+let url = apiUrl + '?action=list';
+if(month) url += '&month=' + encodeURIComponent(month);
+if(lorry) url += '&lorry=' + encodeURIComponent(lorry);
+const res = await fetch(url);
+const text = await res.text();
+let j; try{ j = JSON.parse(text); }catch(e){ j = null; }
+if(j && j.ok) return j.rows || [];
+}catch(e){ /* fall through to local */ }
+}
+return memStore.filter(r=> (!month || (r.date||'').startsWith(month)) && (!lorry || (r.lorryNo||'').toLowerCase().includes(lorry.toLowerCase())));
 }
 async function apiDelete(rowNum, dateStr){
-  if(!apiUrl) return {ok:false, reason:'no-url'};
-  try{
-    const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({action:'delete', row: rowNum, date: dateStr})});
-    const text = await res.text();
-    let j; try{ j = JSON.parse(text); }catch(e){ return {ok:false, reason:'bad-response'}; }
-    if(j.ok===false) return {ok:false, reason:'script-error'};
-    return {ok:true};
-  }catch(e){ return {ok:false, reason:'fetch-error'}; }
+if(!apiUrl) return {ok:false, reason:'no-url'};
+try{
+const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'},
+body: JSON.stringify({action:'delete', row: rowNum, date: dateStr})});
+const text = await res.text();
+let j; try{ j = JSON.parse(text); }catch(e){ return {ok:false, reason:'bad-response'}; }
+if(j.ok===false) return {ok:false, reason:'script-error'};
+return {ok:true};
+}catch(e){ return {ok:false, reason:'fetch-error'}; }
 }
-
 el('addBtn').addEventListener('click', async ()=>{
-  const lorryNo = el('fLorryNo').value.trim();
-  if(!lorryNo){ alert('Please fill in Lorry No.'); return; }
-  const record = {
-    lorryNo, date: el('fDate').value || todayStr(),
-    items: {...checkState}, cleanliness: {...cleanState},
-    remark: el('fRemark').value.trim(),
-    inspectedName: el('iName').value.trim(),
-    inspectedPosition: el('iPosition').value.trim()
-  };
-  setStatus('Saving...', 'unsaved');
-  const res = await apiAdd(record);
-  if(res.ok){
-    setStatus('Submitted ✓');
-    el('fLorryNo').value=''; el('fRemark').value=''; el('iName').value=''; el('iPosition').value='';
-    el('fDate').value = todayStr();
-    resetChecklist();
-  } else if(res.reason==='no-url'){
-    setStatus('Saved on this device only', 'unsaved');
-  } else {
-    setStatus('Save failed — see Console (F12)', 'unsaved');
-    console.error('[lorry] Add failed:', res.reason, res.raw||'');
-  }
+const lorryNo = el('fLorryNo').value.trim();
+if(!lorryNo){ alert('Please fill in Lorry No.'); return; }
+const record = {
+lorryNo, date: el('fDate').value || todayStr(),
+items: {...checkState}, cleanliness: {...cleanState},
+remark: el('fRemark').value.trim(),
+inspectedName: el('iName').value.trim(),
+inspectedPosition: el('iPosition').value.trim()
+};
+setStatus('Saving...', 'unsaved');
+const res = editingRecord
+? await apiUpdate(editingRecord.row, editingRecord.date, record)
+: await apiAdd(record);
+if(res.ok){
+setStatus(editingRecord ? 'Updated ✓' : 'Submitted ✓');
+el('fLorryNo').value=''; el('fRemark').value=''; el('iName').value=''; el('iPosition').value='';
+el('fDate').value = todayStr();
+resetChecklist();
+setEditMode(null);
+} else if(res.reason==='no-url'){
+setStatus('Saved on this device only', 'unsaved');
+} else {
+setStatus((editingRecord?'Update':'Save') + ' failed — see Console (F12)', 'unsaved');
+console.error('[lorry] Save failed:', res.reason, res.raw||'');
+}
 });
-
 function issueCount(record){
-  const all = {...(record.items||{}), ...(record.cleanliness||{})};
-  return Object.values(all).filter(v=> v==='notfunc' || v==='broken').length;
+const all = {...(record.items||{}), ...(record.cleanliness||{})};
+return Object.values(all).filter(v=> v==='notfunc' || v==='broken').length;
 }
 function buildDetailHtml(r){
-  const rows = (names, obj) => names.map(n=>
-    `<tr><td class="lbl">${escapeHtml(n)}</td><td class="sym">${SYMS[obj[n]]||''}</td></tr>`).join('');
-  return `<table class="ptable">
-    <tr><td class="lbl">Lorry No</td><td colspan="2">${escapeHtml(r.lorryNo)}</td></tr>
-    <tr><td class="lbl">Date</td><td colspan="2">${escapeHtml(r.date)}</td></tr>
-    ${rows(CHECK_ITEMS, r.items||{})}
-    ${rows(CLEAN_ITEMS, r.cleanliness||{})}
-    <tr><td class="lbl">Remark</td><td colspan="2">${escapeHtml(r.remark)}</td></tr>
-    <tr><td class="lbl">Inspected by</td><td colspan="2">${escapeHtml(r.inspectedName)} — ${escapeHtml(r.inspectedPosition)}</td></tr>
-  </table>`;
+const rows = (names, obj) => names.map(n=>
+`<tr><td class="lbl">${escapeHtml(n)}</td><td class="sym">${SYMS[obj[n]]||''}</td></tr>`).join('');
+return `<table class="ptable">
+<tr><td class="lbl">Lorry No</td><td colspan="2">${escapeHtml(r.lorryNo)}</td></tr>
+<tr><td class="lbl">Date</td><td colspan="2">${escapeHtml(r.date)}</td></tr>
+${rows(CHECK_ITEMS, r.items||{})}
+${rows(CLEAN_ITEMS, r.cleanliness||{})}
+<tr><td class="lbl">Remark</td><td colspan="2">${escapeHtml(r.remark)}</td></tr>
+<tr><td class="lbl">Inspected by</td><td colspan="2">${escapeHtml(r.inspectedName)} — ${escapeHtml(r.inspectedPosition)}</td></tr>
+</table>`;
 }
-
 // Print layout matching the original paper form (header block, form
 // meta, item table with tick symbols, cleanliness section, sign-off).
 function buildPrintPage_(r){
-  const itemRows = CHECK_ITEMS.map(n=>
-    `<tr><td class="pname">${escapeHtml(n)}</td><td class="sym">${SYMS[(r.items||{})[n]]||''}</td></tr>`).join('');
-  const cleanRows = CLEAN_ITEMS.map(n=>
-    `<tr><td class="pname">&nbsp;&nbsp;— ${escapeHtml(n)}</td><td class="sym">${SYMS[(r.cleanliness||{})[n]]||''}</td></tr>`).join('');
-  return `
-  <div class="ppage-head">
-    <div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
-    <div class="r">
-      <div><span>Doc No.:</span><span>HX3-F52</span></div>
-      <div><span>Issue No:</span><span>1</span></div>
-      <div><span>Issue Date:</span><span>1/6/2025</span></div>
-      <div><span>Page:</span><span>1 of 1</span></div>
-    </div>
-  </div>
-  <div class="pmeta">
-    <div><b>Lorry No:</b> ${escapeHtml(r.lorryNo)}</div>
-    <div><b>Date:</b> ${escapeHtml(r.date)}</div>
-  </div>
-  <table class="ptable">
-    <tr><th class="pname">Checking Items</th><th class="sym">Status</th></tr>
-    ${itemRows}
-    <tr><td class="psection" colspan="2">Lorry Cleanliness</td></tr>
-    ${cleanRows}
-  </table>
-  <div class="plegend">"/" = Good condition &nbsp;&nbsp; "X" = Not functioning &nbsp;&nbsp; "\u2013" = Broken</div>
-  <div class="pfoot">
-    <div><b>Remark:</b> ${escapeHtml(r.remark)}</div>
-    <div class="row"><div><b>Inspected by:</b> <span class="psig-name">${escapeHtml(r.inspectedName)}</span></div><div><b>Position:</b> ${escapeHtml(r.inspectedPosition)}</div></div>
-  </div>`;
+const itemRows = CHECK_ITEMS.map(n=>
+`<tr><td class="pname">${escapeHtml(n)}</td><td class="sym">${SYMS[(r.items||{})[n]]||''}</td></tr>`).join('');
+const cleanRows = CLEAN_ITEMS.map(n=>
+`<tr><td class="pname">&nbsp;&nbsp;— ${escapeHtml(n)}</td><td class="sym">${SYMS[(r.cleanliness||{})[n]]||''}</td></tr>`).join('');
+return `
+<div class="ppage-head">
+<div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
+<div class="r">
+<div><span>Doc No.:</span><span>HX3-F52</span></div>
+<div><span>Issue No:</span><span>1</span></div>
+<div><span>Issue Date:</span><span>1/6/2025</span></div>
+<div><span>Page:</span><span>1 of 1</span></div>
+</div>
+</div>
+<div class="pmeta">
+<div><b>Lorry No:</b> ${escapeHtml(r.lorryNo)}</div>
+<div><b>Date:</b> ${escapeHtml(r.date)}</div>
+</div>
+<table class="ptable">
+<tr><th class="pname">Checking Items</th><th class="sym">Status</th></tr>
+${itemRows}
+<tr><td class="psection" colspan="2">Lorry Cleanliness</td></tr>
+${cleanRows}
+</table>
+<div class="plegend">"/" = Good condition &nbsp;&nbsp; "X" = Not functioning &nbsp;&nbsp; "\u2013" = Broken</div>
+<div class="pfoot">
+<div><b>Remark:</b> ${escapeHtml(r.remark)}</div>
+<div class="row"><div><b>Inspected by:</b> <span class="psig-name">${escapeHtml(r.inspectedName)}</span></div><div><b>Position:</b> ${escapeHtml(r.inspectedPosition)}</div></div>
+</div>`;
 }
-
 async function loadLog(){
-  const month = el('monthFilter').value;
-  if(!month){ alert('Please choose a Month first.'); return; }
-  const lorry = el('lorryFilter').value.trim();
-  const wrap = el('logWrap');
-  wrap.innerHTML = '<div class="empty-note">Loading...</div>';
-  const rows = await apiList(month, lorry);
-  if(rows.length===0){ wrap.innerHTML = '<div class="empty-note">No records found.</div>'; return; }
-  rows.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  wrap.innerHTML = '';
-  rows.forEach(r=>{
-    const issues = issueCount(r);
-    const row = document.createElement('div');
-    row.className = 'recrow';
-    row.innerHTML = `
-      <div class="top">
-        <span class="d mono">${escapeHtml(r.date)}</span>
-        <span class="lorry">${escapeHtml(r.lorryNo)}</span>
-        ${issues>0 ? `<span class="issue-badge">${issues} issue${issues>1?'s':''}</span>` : '<span class="ok-badge">All good</span>'}
-        <span class="btns">
-          <button class="btn" data-act="view">View</button>
-          <button class="btn btn-danger" data-act="delete">Delete</button>
-        </span>
-      </div>`;
-    row.querySelector('[data-act="view"]').addEventListener('click', ()=>{
-      el('vmTitle').textContent = `${r.date} · ${r.lorryNo}`;
-      el('vmBody').innerHTML = buildDetailHtml(r);
-      el('vmPrintBtn').onclick = ()=>{
-        printWithOrientation_(buildPrintPage_(r), 'portrait');
-      };
-      el('viewModal').classList.add('show');
-    });
-    row.querySelector('[data-act="delete"]').addEventListener('click', async ()=>{
-      if(!confirm('Delete this checklist record?')) return;
-      const res = await apiDelete(r.row, r.date);
-      if(res.ok) loadLog();
-      else alert('Could not delete — check Console (F12) or the Google Sheet connection.');
-    });
-    wrap.appendChild(row);
-  });
+const month = el('monthFilter').value;
+if(!month){ alert('Please choose a Month first.'); return; }
+const lorry = el('lorryFilter').value.trim();
+const wrap = el('logWrap');
+wrap.innerHTML = '<div class="empty-note">Loading...</div>';
+const rows = await apiList(month, lorry);
+if(rows.length===0){ wrap.innerHTML = '<div class="empty-note">No records found.</div>'; return; }
+rows.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+wrap.innerHTML = '';
+rows.forEach(r=>{
+const issues = issueCount(r);
+const row = document.createElement('div');
+row.className = 'recrow';
+row.innerHTML = `
+<div class="top">
+<span class="d mono">${escapeHtml(r.date)}</span>
+<span class="lorry">${escapeHtml(r.lorryNo)}</span>
+${issues>0 ? `<span class="issue-badge">${issues} issue${issues>1?'s':''}</span>` : '<span class="ok-badge">All good</span>'}
+<span class="btns">
+<button class="btn" data-act="view">View</button>
+<button class="btn" data-act="edit">Edit</button>
+<button class="btn btn-danger" data-act="delete">Delete</button>
+</span>
+</div>`;
+row.querySelector('[data-act="view"]').addEventListener('click', ()=>{
+el('vmTitle').textContent = `${r.date} · ${r.lorryNo}`;
+el('vmBody').innerHTML = buildDetailHtml(r);
+el('vmPrintBtn').onclick = ()=>{
+printWithOrientation_(buildPrintPage_(r), 'portrait');
+};
+el('viewModal').classList.add('show');
+});
+row.querySelector('[data-act="edit"]').addEventListener('click', ()=>{
+loadRecordIntoForm(r);
+});
+row.querySelector('[data-act="delete"]').addEventListener('click', async ()=>{
+if(!confirm('Delete this checklist record?')) return;
+const res = await apiDelete(r.row, r.date);
+if(res.ok) loadLog();
+else alert('Could not delete — check Console (F12) or the Google Sheet connection.');
+});
+wrap.appendChild(row);
+});
 }
 el('loadLogBtn').addEventListener('click', loadLog);
-
 const MONTH_NAMES = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-
 function buildMonthlyGridHtml_(records, monthVal){
-  const sorted = records.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') );
-  const cols = sorted;
-  const [y,m] = (monthVal||'').split('-');
-  const monthLabel = (m && MONTH_NAMES[parseInt(m,10)-1]) ? (MONTH_NAMES[parseInt(m,10)-1] + ' ' + y) : monthVal;
-
-  const dateCell = r => { const d = (r.date||'').split('-'); return d.length===3 ? (d[2]+'/'+d[1]) : escapeHtml(r.date); };
-  const itemRow = (displayName, lookupName, key) => `<tr><td class="itemname">${escapeHtml(displayName)}</td>${
-    cols.map(r=> `<td class="datecol">${SYMS[(r[key]||{})[lookupName]]||''}</td>`).join('')
-  }</tr>`;
-
-  return `
-  <div class="ppage-head">
-    <div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
-    <div class="r">
-      <div><span>Doc No.:</span><span>HX3-F52</span></div>
-      <div><span>Issue No:</span><span>1</span></div>
-      <div><span>Issue Date:</span><span>1/6/2025</span></div>
-      <div><span>Page:</span><span>1 of 1</span></div>
-    </div>
-  </div>
-  <div class="pmonth-title">MONTH/YEAR: ${escapeHtml(monthLabel)}</div>
-  <table class="pgrid">
-    <tr>
-      <th class="itemname" rowspan="2">CHECKING ITEMS</th>
-      <th colspan="${cols.length}">INCOMING DATE</th>
-    </tr>
-    <tr>${cols.map(r=> `<th class="datecol">${dateCell(r)}</th>`).join('')}</tr>
-    <tr><td class="itemname">LORRY NO</td>${cols.map(r=> `<td class="datecol lorryno">${escapeHtml(r.lorryNo)}</td>`).join('')}</tr>
-    ${CHECK_ITEMS.map(n=> itemRow(n, n, 'items')).join('')}
-    <tr class="cleanheader"><td colspan="${cols.length+1}">LORRY CLEANLINESS</td></tr>
-    ${CLEAN_ITEMS.map(n=> itemRow('- '+n, n, 'cleanliness')).join('')}
-    <tr><td class="itemname">Remark</td>${cols.map(r=> `<td class="datecol">${escapeHtml(r.remark||'')}</td>`).join('')}</tr>
-    <tr><td class="itemname">Inspected by</td>${cols.map(r=> `<td class="datecol"><span class="psig-name">${escapeHtml(r.inspectedName||'')}</span></td>`).join('')}</tr>
-  </table>
-  <div class="plegend2">REMARKS: "/" = Good condition &nbsp;&nbsp; "X" = Not functioning &nbsp;&nbsp; "\u2013" = Broken</div>`;
+const sorted = records.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') );
+const cols = sorted;
+const [y,m] = (monthVal||'').split('-');
+const monthLabel = (m && MONTH_NAMES[parseInt(m,10)-1]) ? (MONTH_NAMES[parseInt(m,10)-1] + ' ' + y) : monthVal;
+const dateCell = r => { const d = (r.date||'').split('-'); return d.length===3 ? (d[2]+'/'+d[1]) : escapeHtml(r.date); };
+const itemRow = (displayName, lookupName, key) => `<tr><td class="itemname">${escapeHtml(displayName)}</td>${
+cols.map(r=> `<td class="datecol">${SYMS[(r[key]||{})[lookupName]]||''}</td>`).join('')
+}</tr>`;
+return `
+<div class="ppage-head">
+<div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
+<div class="r">
+<div><span>Doc No.:</span><span>HX3-F52</span></div>
+<div><span>Issue No:</span><span>1</span></div>
+<div><span>Issue Date:</span><span>1/6/2025</span></div>
+<div><span>Page:</span><span>1 of 1</span></div>
+</div>
+</div>
+<div class="pmonth-title">MONTH/YEAR: ${escapeHtml(monthLabel)}</div>
+<table class="pgrid">
+<tr>
+<th class="itemname" rowspan="2">CHECKING ITEMS</th>
+<th colspan="${cols.length}">INCOMING DATE</th>
+</tr>
+<tr>${cols.map(r=> `<th class="datecol">${dateCell(r)}</th>`).join('')}</tr>
+<tr><td class="itemname">LORRY NO</td>${cols.map(r=> `<td class="datecol lorryno">${escapeHtml(r.lorryNo)}</td>`).join('')}</tr>
+${CHECK_ITEMS.map(n=> itemRow(n, n, 'items')).join('')}
+<tr class="cleanheader"><td colspan="${cols.length+1}">LORRY CLEANLINESS</td></tr>
+${CLEAN_ITEMS.map(n=> itemRow('- '+n, n, 'cleanliness')).join('')}
+<tr><td class="itemname">Remark</td>${cols.map(r=> `<td class="datecol">${escapeHtml(r.remark||'')}</td>`).join('')}</tr>
+<tr><td class="itemname">Inspected by</td>${cols.map(r=> `<td class="datecol"><span class="psig-name">${escapeHtml(r.inspectedName||'')}</span></td>`).join('')}</tr>
+</table>
+<div class="plegend2">REMARKS: "/" = Good condition &nbsp;&nbsp; "X" = Not functioning &nbsp;&nbsp; "\u2013" = Broken</div>`;
 }
-
 function printWithOrientation_(html, orientation){
-  el('printRoot').innerHTML = html;
-  const styleTag = document.createElement('style');
-  styleTag.id = 'tempPrintOrientation';
-  styleTag.textContent = '@page { size: A4 ' + orientation + '; margin: 8mm; }';
-  document.head.appendChild(styleTag);
-  ensureSignatureFontReady_().then(()=> window.print());
-  const cleanup = () => { const t = el('tempPrintOrientation'); if(t) t.remove(); window.removeEventListener('afterprint', cleanup); };
-  window.addEventListener('afterprint', cleanup);
+el('printRoot').innerHTML = html;
+const styleTag = document.createElement('style');
+styleTag.id = 'tempPrintOrientation';
+styleTag.textContent = '@page { size: A4 ' + orientation + '; margin: 8mm; }';
+document.head.appendChild(styleTag);
+ensureSignatureFontReady_().then(()=> window.print());
+const cleanup = () => { const t = el('tempPrintOrientation'); if(t) t.remove(); window.removeEventListener('afterprint', cleanup); };
+window.addEventListener('afterprint', cleanup);
 }
-
 el('printGridBtn').addEventListener('click', async ()=>{
-  const month = el('monthFilter').value;
-  if(!month){ alert('Please choose a Month first.'); return; }
-  const rows = await apiList(month, '');
-  if(rows.length===0){ alert('No records found for that month.'); return; }
-  if(rows.length > 20){ alert('Note: ' + rows.length + ' entries this month — the sheet is wide, some columns may spill onto extra pages when printed.'); }
-  printWithOrientation_(buildMonthlyGridHtml_(rows, month), 'landscape');
+const month = el('monthFilter').value;
+if(!month){ alert('Please choose a Month first.'); return; }
+const rows = await apiList(month, '');
+if(rows.length===0){ alert('No records found for that month.'); return; }
+if(rows.length > 20){ alert('Note: ' + rows.length + ' entries this month — the sheet is wide, some columns may spill onto extra pages when printed.'); }
+printWithOrientation_(buildMonthlyGridHtml_(rows, month), 'landscape');
 });
 el('vmCloseBtn').addEventListener('click', ()=> el('viewModal').classList.remove('show'));
 el('viewModal').addEventListener('click', e=>{ if(e.target.id==='viewModal') el('viewModal').classList.remove('show'); });
-
 el('sheetUrlInput').value = apiUrl;
 refreshApiBar();
 el('saveUrlBtn').addEventListener('click', ()=>{
-  apiUrl = el('sheetUrlInput').value.trim();
-  safeSet('lorry_api_url', apiUrl);
-  refreshApiBar();
-  alert(apiUrl ? 'Connected. Checklists will now save to your Google Sheet.' : 'URL cleared.');
+apiUrl = el('sheetUrlInput').value.trim();
+safeSet('lorry_api_url', apiUrl);
+refreshApiBar();
+alert(apiUrl ? 'Connected. Checklists will now save to your Google Sheet.' : 'URL cleared.');
 });
-
 document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-    tab.classList.add('active');
-    el('panel-'+tab.dataset.panel).classList.add('active');
-  });
+tab.addEventListener('click', ()=>{
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+tab.classList.add('active');
+el('panel-'+tab.dataset.panel).classList.add('active');
+});
 });
 </script>
-
 </body>
 </html>
