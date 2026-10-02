@@ -212,7 +212,9 @@ function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 // Hardcoded so every device auto-connects to the Google Sheet without
 // anyone needing to paste the URL manually via "Save URL".
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby_XVc78BffklS91ej3GjwgN4XhgLnrc-UJ4oH-MwiznMK7yNj_iaw5s2d_QVYt1ros/exec';
-let apiUrl = safeGet('lorry_api_url') || DEFAULT_API_URL;
+let apiUrl = DEFAULT_API_URL;
+try{ localStorage.removeItem('lorry_api_url'); }catch(e){}
+
 const el = id => document.getElementById(id);
 const memStore = [];
 const CHECK_ITEMS = [
@@ -223,7 +225,12 @@ const CHECK_ITEMS = [
 ];
 const CLEAN_ITEMS = ['Cabin Wall','Cabin Floor','Window','Dashboard','Driver Seat'];
 const SYMS = {good:'/', notfunc:'X', broken:'\u2013'};
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 async function ensureSignatureFontReady_(){
 try{
@@ -338,19 +345,28 @@ return {ok:true};
 }catch(e){ return {ok:false, reason:'fetch-error', raw:String(e)}; }
 }
 async function apiList(month, lorry){
-if(apiUrl){
-try{
-let url = apiUrl + '?action=list';
-if(month) url += '&month=' + encodeURIComponent(month);
-if(lorry) url += '&lorry=' + encodeURIComponent(lorry);
-const res = await fetch(url);
-const text = await res.text();
-let j; try{ j = JSON.parse(text); }catch(e){ j = null; }
-if(j && j.ok) return j.rows || [];
-}catch(e){ /* fall through to local */ }
+  if(!apiUrl){
+    return memStore.filter(r=> (!month || (r.date||'').startsWith(month)) && (!lorry || (r.lorryNo||'').toLowerCase().includes(lorry.toLowerCase())));
+  }
+  let lastErr = '';
+  for(let attempt = 1; attempt <= 2; attempt++){
+    try{
+      let url = apiUrl + '?action=list&_=' + Date.now();
+      if(month) url += '&month=' + encodeURIComponent(month);
+      if(lorry) url += '&lorry=' + encodeURIComponent(lorry);
+      const res = await fetch(url);
+      const text = await res.text();
+      let j;
+      try{ j = JSON.parse(text); }catch(e){ throw new Error('Bad response from Google Sheet'); }
+      if(j && j.ok) return j.rows || [];
+      throw new Error((j && j.error) || 'Unknown error');
+    }catch(e){
+      lastErr = String((e && e.message) || e);
+    }
+  }
+  throw new Error(lastErr);
 }
-return memStore.filter(r=> (!month || (r.date||'').startsWith(month)) && (!lorry || (r.lorryNo||'').toLowerCase().includes(lorry.toLowerCase())));
-}
+
 async function apiDelete(rowNum, dateStr){
 if(!apiUrl) return {ok:false, reason:'no-url'};
 try{
@@ -444,7 +460,14 @@ if(!month){ alert('Please choose a Month first.'); return; }
 const lorry = el('lorryFilter').value.trim();
 const wrap = el('logWrap');
 wrap.innerHTML = '<div class="empty-note">Loading...</div>';
-const rows = await apiList(month, lorry);
+let rows;
+try{ rows = await apiList(month, lorry); }
+catch(e){
+  wrap.innerHTML = '<div class="empty-note">Could not load records from Google Sheet.<br>' + escapeHtml(e.message) + '<br><br><button class="btn" id="retryLoadBtn">Try again</button></div>';
+  el('retryLoadBtn').addEventListener('click', loadLog);
+  return;
+}
+
 if(rows.length===0){ wrap.innerHTML = '<div class="empty-note">No records found.</div>'; return; }
 rows.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 wrap.innerHTML = '';
@@ -533,7 +556,10 @@ window.addEventListener('afterprint', cleanup);
 el('printGridBtn').addEventListener('click', async ()=>{
 const month = el('monthFilter').value;
 if(!month){ alert('Please choose a Month first.'); return; }
-const rows = await apiList(month, '');
+let rows;
+try{ rows = await apiList(month, ''); }
+catch(e){ alert('Could not load records: ' + e.message); return; }
+
 if(rows.length===0){ alert('No records found for that month.'); return; }
 if(rows.length > 20){ alert('Note: ' + rows.length + ' entries this month — the sheet is wide, some columns may spill onto extra pages when printed.'); }
 printWithOrientation_(buildMonthlyGridHtml_(rows, month), 'landscape');
