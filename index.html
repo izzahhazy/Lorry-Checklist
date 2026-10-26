@@ -113,6 +113,10 @@ body *{visibility:hidden;}
 .plegend2{font-size:9.5px;color:#333;margin-top:6px;line-height:1.5;}
 .psig-name{font-family:'Dancing Script',cursive;font-weight:600;font-size:16px;color:#1B4A36;}
 .pgrid .psig-name{font-size:11px;}
+.ef-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.ef-row input{flex:1;min-width:0;font-family:inherit;font-size:16px;padding:10px;border:1px solid var(--line-strong);border-radius:6px;}
+.ef-row button{width:38px;height:38px;flex-shrink:0;border-radius:8px;border:1px solid var(--line-strong);background:#fff;font-size:16px;cursor:pointer;color:var(--ink-soft);}
+.ef-row button.del{color:var(--red);border-color:var(--red-100);}
 </style>
 </head>
 <body>
@@ -135,6 +139,7 @@ Google Sheet not connected yet — data will only stay on this device/session.
 <div class="tabs">
 <div class="tab active" data-panel="new">New Checklist</div>
 <div class="tab" data-panel="records">Records</div>
+<div class="tab" data-panel="edit">Edit Form</div>
 <div class="tab" data-panel="settings">Google Sheet</div>
 </div>
 <div class="panel active" id="panel-new">
@@ -178,6 +183,31 @@ Google Sheet not connected yet — data will only stay on this device/session.
 <button class="btn btn-primary" id="printGridBtn" style="width:100%;margin-bottom:14px;">Print Monthly Sheet</button>
 <div id="logWrap"><div class="empty-note">Tap "Show records" to load the list.</div></div>
 </div>
+<div class="panel" id="panel-edit">
+<div class="card" id="efGate">
+<div style="font-weight:700;margin-bottom:10px;">Edit Form — password required</div>
+<div class="settings-row">
+<input type="password" id="efPass" placeholder="Enter password" autocomplete="off">
+<button type="button" class="btn btn-primary" id="efUnlock" style="width:auto;">Unlock</button>
+</div>
+<div class="hint" id="efGateMsg"></div>
+</div>
+<div class="card" id="efCard" style="display:none;">
+<div style="font-weight:700;margin-bottom:6px;">Edit Form</div>
+<div class="hint" style="margin:0 0 12px;">Add, rename, remove or reorder items. Tap <b>Save Form</b> to apply to all devices. Old records keep their saved data even if an item is renamed or removed.</div>
+<div class="section-title">Checking Items</div>
+<div id="efCheck"></div>
+<button type="button" class="btn" id="efAddCheck">+ Add checking item</button>
+<div class="section-title">Lorry Cleanliness</div>
+<div id="efClean"></div>
+<button type="button" class="btn" id="efAddClean">+ Add cleanliness item</button>
+<div style="display:flex;gap:8px;margin-top:16px;">
+<button type="button" class="btn btn-primary" id="efSave">Save Form</button>
+<button type="button" class="btn" id="efReset">Reset to default</button>
+</div>
+<div style="margin-top:10px;"><span class="status-pill" id="efStatus">Ready</span></div>
+</div>
+</div>
 <div class="panel" id="panel-settings">
 <div class="card">
 <div style="font-weight:700;margin-bottom:10px;">Google Sheet connection</div>
@@ -217,13 +247,13 @@ try{ localStorage.removeItem('lorry_api_url'); }catch(e){}
 
 const el = id => document.getElementById(id);
 const memStore = [];
-const CHECK_ITEMS = [
+let CHECK_ITEMS = [
 'Brakes, Clutch and Accelerator','Side Mirror','Windscreen, Glass (Wiper & Rubber)',
 'Steering and Horn','Lights and Indicators','Door Lock','Number Plate (Front & Back)',
 'Tyre and Rim','Fuel / Oil Leaks','Mud Flaps','Marker / Reflector',
 'Engine Oil Checking','Radiator Tank Water Level','Battery Fluid Level and Condition'
 ];
-const CLEAN_ITEMS = ['Cabin Wall','Cabin Floor','Window','Dashboard','Driver Seat'];
+let CLEAN_ITEMS = ['Cabin Wall','Cabin Floor','Window','Dashboard','Driver Seat'];
 const SYMS = {good:'/', notfunc:'X', broken:'\u2013'};
 function todayStr(){
   const d = new Date();
@@ -272,6 +302,117 @@ buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState);
 }
 resetChecklist();
 el('fDate').value = todayStr();
+const DEFAULT_CHECK_ITEMS = CHECK_ITEMS.slice();
+const DEFAULT_CLEAN_ITEMS = CLEAN_ITEMS.slice();
+const CFG_KEY = 'lorry_form_cfg';
+// Items that exist in saved records but were later removed from the form are still shown.
+function withExtras_(base, recs, key){
+const out = base.slice();
+recs.forEach(r=>{ const o = (r && r[key]) || {}; Object.keys(o).forEach(k=>{ if(o[k] && out.indexOf(k) < 0) out.push(k); }); });
+return out;
+}
+function applyConfig_(cfg){
+if(!cfg || !Array.isArray(cfg.check) || !Array.isArray(cfg.clean)) return false;
+const tidy = a => a.map(x=> String(x).trim()).filter(Boolean);
+const c1 = tidy(cfg.check), c2 = tidy(cfg.clean);
+if(!c1.length) return false;
+CHECK_ITEMS = c1; CLEAN_ITEMS = c2;
+return true;
+}
+function rebuildNewForm_(){
+if(editingRecord) return;
+const keepC = {...checkState}, keepL = {...cleanState};
+checkState = {}; cleanState = {};
+buildItemRows(el('checkItemsWrap'), CHECK_ITEMS, checkState, keepC);
+buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState, keepL);
+}
+async function loadFormConfig_(){
+try{ const raw = safeGet(CFG_KEY); if(raw && applyConfig_(JSON.parse(raw))) rebuildNewForm_(); }catch(e){}
+if(!apiUrl) return;
+try{
+const res = await fetch(apiUrl + '?action=getConfig&_=' + Date.now());
+const j = JSON.parse(await res.text());
+if(j && j.ok && j.config && applyConfig_(j.config)){
+safeSet(CFG_KEY, JSON.stringify(j.config));
+rebuildNewForm_();
+}
+}catch(e){ /* keep local or default items */ }
+}
+const efCheck = [], efClean = [];
+function efStatus_(text, kind){ const p = el('efStatus'); p.textContent = text; p.className = 'status-pill' + (kind==='unsaved' ? ' unsaved' : ''); }
+let efPassword = '';
+function efShow_(){
+const ok = !!efPassword;
+el('efGate').style.display = ok ? 'none' : 'block';
+el('efCard').style.display = ok ? 'block' : 'none';
+if(ok) efLoad_(); else { el('efPass').value = ''; el('efGateMsg').textContent = ''; }
+}
+async function efUnlock_(){
+const pw = el('efPass').value;
+if(!pw){ el('efGateMsg').textContent = 'Please enter the password.'; return; }
+el('efGateMsg').textContent = 'Checking...';
+try{
+const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({action:'checkPass', password: pw})});
+const j = JSON.parse(await res.text());
+if(j && j.ok){ efPassword = pw; efShow_(); }
+else el('efGateMsg').textContent = (j && j.error) ? j.error : 'Apps Script not updated yet.';
+}catch(e){ el('efGateMsg').textContent = 'Could not reach Google Sheet. Check connection / Apps Script update.'; }
+}
+el('efUnlock').addEventListener('click', efUnlock_);
+el('efPass').addEventListener('keydown', e=>{ if(e.key==='Enter') efUnlock_(); });
+function efLoad_(){
+efCheck.length = 0; efCheck.push(...CHECK_ITEMS);
+efClean.length = 0; efClean.push(...CLEAN_ITEMS);
+efRender_(); efStatus_('Ready');
+}
+function efRender_(){
+[['efCheck', efCheck], ['efClean', efClean]].forEach(([id, arr])=>{
+const wrap = el(id); wrap.innerHTML = '';
+arr.forEach((v, i)=>{
+const row = document.createElement('div'); row.className = 'ef-row';
+row.innerHTML = '<input type="text" placeholder="Item name"><button type="button" data-a="up">&uarr;</button><button type="button" data-a="dn">&darr;</button><button type="button" class="del" data-a="del">&times;</button>';
+const inp = row.querySelector('input'); inp.value = v;
+inp.addEventListener('input', ()=>{ arr[i] = inp.value; efStatus_('Unsaved changes', 'unsaved'); });
+row.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+const a = b.dataset.a;
+if(a==='up' && i>0){ const t = arr[i-1]; arr[i-1] = arr[i]; arr[i] = t; }
+else if(a==='dn' && i<arr.length-1){ const t = arr[i+1]; arr[i+1] = arr[i]; arr[i] = t; }
+else if(a==='del'){ if(!confirm('Remove "' + (arr[i] || 'this item') + '" from the form? Old records keep their data.')) return; arr.splice(i, 1); }
+else return;
+efStatus_('Unsaved changes', 'unsaved'); efRender_();
+}));
+wrap.appendChild(row);
+});
+});
+}
+el('efAddCheck').addEventListener('click', ()=>{ efCheck.push(''); efRender_(); efStatus_('Unsaved changes', 'unsaved'); const l = el('efCheck').querySelectorAll('input'); l[l.length-1].focus(); });
+el('efAddClean').addEventListener('click', ()=>{ efClean.push(''); efRender_(); efStatus_('Unsaved changes', 'unsaved'); const l = el('efClean').querySelectorAll('input'); l[l.length-1].focus(); });
+el('efReset').addEventListener('click', ()=>{
+if(!confirm('Reset to the original items? Tap Save Form afterwards to apply.')) return;
+efCheck.length = 0; efCheck.push(...DEFAULT_CHECK_ITEMS);
+efClean.length = 0; efClean.push(...DEFAULT_CLEAN_ITEMS);
+efRender_(); efStatus_('Unsaved changes', 'unsaved');
+});
+el('efSave').addEventListener('click', async ()=>{
+const tidy = a => a.map(x=> x.trim()).filter(Boolean);
+const c1 = tidy(efCheck), c2 = tidy(efClean);
+if(!c1.length){ alert('Add at least one checking item.'); return; }
+const dup = a => a.some((v, i)=> a.findIndex(x=> x.toLowerCase()===v.toLowerCase()) !== i);
+if(dup(c1) || dup(c2)){ alert('Two items have the same name. Please make each name unique.'); return; }
+const cfg = {check: c1, clean: c2};
+efStatus_('Saving...', 'unsaved');
+try{
+const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({action:'saveConfig', config: cfg, password: efPassword})});
+const j = JSON.parse(await res.text());
+if(!(j && j.ok)) throw new Error((j && j.error) || 'Apps Script not updated');
+applyConfig_(cfg); safeSet(CFG_KEY, JSON.stringify(cfg)); rebuildNewForm_(); efLoad_();
+efStatus_('Saved for all devices ✓');
+}catch(e){
+if(/password/i.test(String(e.message))){ efPassword = ''; efShow_(); alert('Wrong password. Please unlock again.'); return; }
+efStatus_('Save failed — check Apps Script / connection', 'unsaved');
+console.error('[lorry] saveConfig failed:', e);
+}
+});
 function refreshApiBar(){
 const bar = el('apiBar');
 if(apiUrl){
@@ -308,8 +449,8 @@ el('fRemark').value = r.remark || '';
 el('iName').value = r.inspectedName || '';
 el('iPosition').value = r.inspectedPosition || '';
 checkState = {}; cleanState = {};
-buildItemRows(el('checkItemsWrap'), CHECK_ITEMS, checkState, r.items || {});
-buildItemRows(el('cleanItemsWrap'), CLEAN_ITEMS, cleanState, r.cleanliness || {});
+buildItemRows(el('checkItemsWrap'), withExtras_(CHECK_ITEMS,[r],'items'), checkState, r.items || {});
+buildItemRows(el('cleanItemsWrap'), withExtras_(CLEAN_ITEMS,[r],'cleanliness'), cleanState, r.cleanliness || {});
 setEditMode(r);
 document.querySelector('[data-panel="new"]').click();
 setStatus('Editing — make changes then tap Update Checklist');
@@ -415,8 +556,8 @@ const rows = (names, obj) => names.map(n=>
 return `<table class="ptable">
 <tr><td class="lbl">Lorry No</td><td colspan="2">${escapeHtml(r.lorryNo)}</td></tr>
 <tr><td class="lbl">Date</td><td colspan="2">${escapeHtml(r.date)}</td></tr>
-${rows(CHECK_ITEMS, r.items||{})}
-${rows(CLEAN_ITEMS, r.cleanliness||{})}
+${rows(withExtras_(CHECK_ITEMS,[r],'items'), r.items||{})}
+${rows(withExtras_(CLEAN_ITEMS,[r],'cleanliness'), r.cleanliness||{})}
 <tr><td class="lbl">Remark</td><td colspan="2">${escapeHtml(r.remark)}</td></tr>
 <tr><td class="lbl">Inspected by</td><td colspan="2">${escapeHtml(r.inspectedName)} — ${escapeHtml(r.inspectedPosition)}</td></tr>
 </table>`;
@@ -424,9 +565,9 @@ ${rows(CLEAN_ITEMS, r.cleanliness||{})}
 // Print layout matching the original paper form (header block, form
 // meta, item table with tick symbols, cleanliness section, sign-off).
 function buildPrintPage_(r){
-const itemRows = CHECK_ITEMS.map(n=>
+const itemRows = withExtras_(CHECK_ITEMS,[r],'items').map(n=>
 `<tr><td class="pname">${escapeHtml(n)}</td><td class="sym">${SYMS[(r.items||{})[n]]||''}</td></tr>`).join('');
-const cleanRows = CLEAN_ITEMS.map(n=>
+const cleanRows = withExtras_(CLEAN_ITEMS,[r],'cleanliness').map(n=>
 `<tr><td class="pname">&nbsp;&nbsp;— ${escapeHtml(n)}</td><td class="sym">${SYMS[(r.cleanliness||{})[n]]||''}</td></tr>`).join('');
 return `
 <div class="ppage-head">
@@ -535,9 +676,9 @@ return `
 </tr>
 <tr>${cols.map(r=> `<th class="datecol">${dateCell(r)}</th>`).join('')}</tr>
 <tr><td class="itemname">LORRY NO</td>${cols.map(r=> `<td class="datecol lorryno">${escapeHtml(r.lorryNo)}</td>`).join('')}</tr>
-${CHECK_ITEMS.map(n=> itemRow(n, n, 'items')).join('')}
+${withExtras_(CHECK_ITEMS, cols, 'items').map(n=> itemRow(n, n, 'items')).join('')}
 <tr class="cleanheader"><td colspan="${cols.length+1}">LORRY CLEANLINESS</td></tr>
-${CLEAN_ITEMS.map(n=> itemRow('- '+n, n, 'cleanliness')).join('')}
+${withExtras_(CLEAN_ITEMS, cols, 'cleanliness').map(n=> itemRow('- '+n, n, 'cleanliness')).join('')}
 <tr><td class="itemname">Remark</td>${cols.map(r=> `<td class="datecol">${escapeHtml(r.remark||'')}</td>`).join('')}</tr>
 <tr><td class="itemname">Inspected by</td>${cols.map(r=> `<td class="datecol"><span class="psig-name">${escapeHtml(r.inspectedName||'')}</span></td>`).join('')}</tr>
 </table>
@@ -580,8 +721,10 @@ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
 document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
 tab.classList.add('active');
 el('panel-'+tab.dataset.panel).classList.add('active');
+if(tab.dataset.panel==='edit') efShow_();
 });
 });
+loadFormConfig_();
 </script>
 </body>
 </html>
