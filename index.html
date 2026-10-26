@@ -127,13 +127,13 @@ Google Sheet not connected yet — data will only stay on this device/session.
 </div>
 <div class="masthead">
 <div class="masthead-main">
-<div class="co">HEXA FOOD SDN BHD (HEXA 3)</div>
-<div class="title">Lorry Checklist Record</div>
+<div class="co" id="hdCo">HEXA FOOD SDN BHD (HEXA 3)</div>
+<div class="title" id="hdTitle">Lorry Checklist Record</div>
 </div>
 <div class="masthead-meta">
-<div><span>Doc No.</span><span>HX3-F52</span></div>
-<div><span>Issue No.</span><span>1</span></div>
-<div><span>Issue Date</span><span>1/6/2025</span></div>
+<div><span>Doc No.</span><span id="hdDoc">HX3-F52</span></div>
+<div><span>Issue No.</span><span id="hdIssue">1</span></div>
+<div><span>Issue Date</span><span id="hdDate">1/6/2025</span></div>
 </div>
 </div>
 <div class="tabs">
@@ -195,6 +195,17 @@ Google Sheet not connected yet — data will only stay on this device/session.
 <div class="card" id="efCard" style="display:none;">
 <div style="font-weight:700;margin-bottom:6px;">Edit Form</div>
 <div class="hint" style="margin:0 0 12px;">Add, rename, remove or reorder items. Tap <b>Save Form</b> to apply to all devices. Old records keep their saved data even if an item is renamed or removed.</div>
+<div class="section-title">Header</div>
+<div class="field"><label>Company name</label><input type="text" id="efhCo"></div>
+<div class="field"><label>Form title</label><input type="text" id="efhTitle"></div>
+<div class="row2">
+<div class="field"><label>Doc No.</label><input type="text" id="efhDoc"></div>
+<div class="field"><label>Issue No.</label><input type="text" id="efhIssue"></div>
+</div>
+<div class="row2">
+<div class="field"><label>Issue Date</label><input type="text" id="efhDate" placeholder="e.g. 1/6/2025"></div>
+<div class="field"><label>Page (print only)</label><input type="text" id="efhPage" placeholder="e.g. 1 of 1"></div>
+</div>
 <div class="section-title">Checking Items</div>
 <div id="efCheck"></div>
 <button type="button" class="btn" id="efAddCheck">+ Add checking item</button>
@@ -305,6 +316,15 @@ el('fDate').value = todayStr();
 const DEFAULT_CHECK_ITEMS = CHECK_ITEMS.slice();
 const DEFAULT_CLEAN_ITEMS = CLEAN_ITEMS.slice();
 const CFG_KEY = 'lorry_form_cfg';
+const DEFAULT_HEADER = {co:'HEXA FOOD SDN BHD (HEXA 3)', title:'Lorry Checklist Record', docNo:'HX3-F52', issueNo:'1', issueDate:'1/6/2025', page:'1 of 1'};
+let HEADER = {...DEFAULT_HEADER};
+function applyHeader_(){
+el('hdCo').textContent = HEADER.co; el('hdTitle').textContent = HEADER.title;
+el('hdDoc').textContent = HEADER.docNo; el('hdIssue').textContent = HEADER.issueNo; el('hdDate').textContent = HEADER.issueDate;
+}
+const EFH = {co:'efhCo', title:'efhTitle', docNo:'efhDoc', issueNo:'efhIssue', issueDate:'efhDate', page:'efhPage'};
+function efFillHeader_(h){ Object.keys(EFH).forEach(k=> el(EFH[k]).value = h[k] || ''); }
+Object.keys(EFH).forEach(k=> el(EFH[k]).addEventListener('input', ()=> efStatus_('Unsaved changes', 'unsaved')));
 // Items that exist in saved records but were later removed from the form are still shown.
 function withExtras_(base, recs, key){
 const out = base.slice();
@@ -317,6 +337,8 @@ const tidy = a => a.map(x=> String(x).trim()).filter(Boolean);
 const c1 = tidy(cfg.check), c2 = tidy(cfg.clean);
 if(!c1.length) return false;
 CHECK_ITEMS = c1; CLEAN_ITEMS = c2;
+if(cfg.header && typeof cfg.header === 'object') HEADER = {...DEFAULT_HEADER, ...cfg.header};
+applyHeader_();
 return true;
 }
 function rebuildNewForm_(){
@@ -363,6 +385,7 @@ el('efPass').addEventListener('keydown', e=>{ if(e.key==='Enter') efUnlock_(); }
 function efLoad_(){
 efCheck.length = 0; efCheck.push(...CHECK_ITEMS);
 efClean.length = 0; efClean.push(...CLEAN_ITEMS);
+efFillHeader_(HEADER);
 efRender_(); efStatus_('Ready');
 }
 function efRender_(){
@@ -391,6 +414,7 @@ el('efReset').addEventListener('click', ()=>{
 if(!confirm('Reset to the original items? Tap Save Form afterwards to apply.')) return;
 efCheck.length = 0; efCheck.push(...DEFAULT_CHECK_ITEMS);
 efClean.length = 0; efClean.push(...DEFAULT_CLEAN_ITEMS);
+efFillHeader_(DEFAULT_HEADER);
 efRender_(); efStatus_('Unsaved changes', 'unsaved');
 });
 el('efSave').addEventListener('click', async ()=>{
@@ -399,7 +423,10 @@ const c1 = tidy(efCheck), c2 = tidy(efClean);
 if(!c1.length){ alert('Add at least one checking item.'); return; }
 const dup = a => a.some((v, i)=> a.findIndex(x=> x.toLowerCase()===v.toLowerCase()) !== i);
 if(dup(c1) || dup(c2)){ alert('Two items have the same name. Please make each name unique.'); return; }
-const cfg = {check: c1, clean: c2};
+const header = {};
+Object.keys(EFH).forEach(k=> header[k] = el(EFH[k]).value.trim());
+if(!header.co || !header.title){ alert('Company name and Form title cannot be empty.'); return; }
+const cfg = {check: c1, clean: c2, header};
 efStatus_('Saving...', 'unsaved');
 try{
 const res = await fetch(apiUrl, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({action:'saveConfig', config: cfg, password: efPassword})});
@@ -571,12 +598,12 @@ const cleanRows = withExtras_(CLEAN_ITEMS,[r],'cleanliness').map(n=>
 `<tr><td class="pname">&nbsp;&nbsp;— ${escapeHtml(n)}</td><td class="sym">${SYMS[(r.cleanliness||{})[n]]||''}</td></tr>`).join('');
 return `
 <div class="ppage-head">
-<div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
+<div class="l"><b>${escapeHtml(HEADER.co)}</b><span>${escapeHtml(HEADER.title.toUpperCase())}</span></div>
 <div class="r">
-<div><span>Doc No.:</span><span>HX3-F52</span></div>
-<div><span>Issue No:</span><span>1</span></div>
-<div><span>Issue Date:</span><span>1/6/2025</span></div>
-<div><span>Page:</span><span>1 of 1</span></div>
+<div><span>Doc No.:</span><span>${escapeHtml(HEADER.docNo)}</span></div>
+<div><span>Issue No:</span><span>${escapeHtml(HEADER.issueNo)}</span></div>
+<div><span>Issue Date:</span><span>${escapeHtml(HEADER.issueDate)}</span></div>
+<div><span>Page:</span><span>${escapeHtml(HEADER.page)}</span></div>
 </div>
 </div>
 <div class="pmeta">
@@ -660,12 +687,12 @@ cols.map(r=> `<td class="datecol">${SYMS[(r[key]||{})[lookupName]]||''}</td>`).j
 }</tr>`;
 return `
 <div class="ppage-head">
-<div class="l"><b>HEXA FOOD SDN BHD (HEXA 3)</b><span>LORRY CHECKLIST RECORD</span></div>
+<div class="l"><b>${escapeHtml(HEADER.co)}</b><span>${escapeHtml(HEADER.title.toUpperCase())}</span></div>
 <div class="r">
-<div><span>Doc No.:</span><span>HX3-F52</span></div>
-<div><span>Issue No:</span><span>1</span></div>
-<div><span>Issue Date:</span><span>1/6/2025</span></div>
-<div><span>Page:</span><span>1 of 1</span></div>
+<div><span>Doc No.:</span><span>${escapeHtml(HEADER.docNo)}</span></div>
+<div><span>Issue No:</span><span>${escapeHtml(HEADER.issueNo)}</span></div>
+<div><span>Issue Date:</span><span>${escapeHtml(HEADER.issueDate)}</span></div>
+<div><span>Page:</span><span>${escapeHtml(HEADER.page)}</span></div>
 </div>
 </div>
 <div class="pmonth-title">MONTH/YEAR: ${escapeHtml(monthLabel)}</div>
